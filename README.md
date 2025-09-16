@@ -31,7 +31,7 @@ Permite marcar cursos aprobados, respeta **prerrequisitos**, calcula **créditos
 Instalación:
 ```bash
 pip install pandas openpyxl
-
+```
 
 # Formato del Excel
 
