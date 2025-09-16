@@ -2,6 +2,16 @@
 Herramienta para generar **mallas curriculares interactivas** (un único archivo HTML, sin servidor) a partir de un **Excel**.  
 Permite marcar cursos aprobados, respeta **prerrequisitos**, calcula **créditos aprobados/faltantes**, exporta el **progreso a CSV** e incluye campos para **código de estudiante** y **nombre**, además de **tema claro/oscuro** con persistencia por programa.
 
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
+[![pandas](https://img.shields.io/badge/pandas-%3E=1.0-yellowgreen.svg)](https://pandas.pydata.org/)
+[![openpyxl](https://img.shields.io/badge/openpyxl-required-orange.svg)](https://openpyxl.readthedocs.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
+[![pandas](https://img.shields.io/badge/pandas-%3E=1.0-yellowgreen.svg)](https://pandas.pydata.org/)
+[![openpyxl](https://img.shields.io/badge/openpyxl-required-orange.svg)](https://openpyxl.readthedocs.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![PyPI Downloads](https://img.shields.io/pypi/dm/tu-paquete)](https://pypi.org/project/tu-paquete/)
+
 ---
 
 ## Características
