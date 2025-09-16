@@ -32,6 +32,7 @@ Instalación:
 ```bash
 pip install pandas openpyxl
 
+
 # Formato del Excel
 
 ### 1) Nombre de la hoja
@@ -83,16 +84,20 @@ LEVEL,AREA,ID,NAME,CREDITS,PRE1,PRE2
 
 ```bash
 python3 generar_mallas.py pensum.xlsx --outdir dist
+```
 
-# Colores aleatorios por área (reproducibles con semilla):
+### Colores aleatorios por área (reproducibles con semilla):
+```bash
 python3 generar_mallas.py pensum.xlsx --randomize-colors --seed 123
+```
 
-# Pruebas internas de parseo/colores:
+### Pruebas internas de parseo/colores:
+```bash
 python3 generar_mallas.py --selftest
+```
+**Salida:** se crearán uno o varios HTML en dist/ con nombre CODIGO.html, donde CODIGO viene del nombre de la hoja.
 
-Salida: se crearán uno o varios HTML en dist/ con nombre CODIGO.html, donde CODIGO viene del nombre de la hoja.
-
-**Cómo usar el HTML generado**
+### Cómo usar el HTML generado**
 - Ábrelo con tu navegador (doble clic).
 - Los cursos sin prerrequisitos aparecen disponibles.
 - Al marcarlos como aprobados, se van desbloqueando los dependientes.
