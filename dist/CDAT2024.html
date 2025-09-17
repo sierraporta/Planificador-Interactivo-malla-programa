@@ -9,7 +9,9 @@
     --bg:#0b1220; --paper:#0f172a; --ink:#e5e7eb; --muted:#94a3b8;
     --ok:#22c55e; --warn:#f59e0b; --chip:#1f2937;
     --OTRO:#9ca3af;
-    --AREA-AEMP:#84cc16;--AREA-CBAS:#eab308;--AREA-CDAT:#14b8a6;--AREA-CHUL:#10b981;--AREA-CHUM:#3b82f6;--AREA-ECON:#22d3ee;--AREA-ECOU:#a855f7;--AREA-IIND:#ec4899;--AREA-ISCO:#f59e0b;
+    --AREA-AEMP:#a855f7;--AREA-CBAS:#06b6d4;--AREA-CDAT:#84cc16;--AREA-CHUL:#eab308;--AREA-CHUM:#10b981;--AREA-ECON:#14b8a6;--AREA-ECOU:#3b82f6;--AREA-IIND:#22d3ee;--AREA-ISCO:#f59e0b;
+    --levels: 10;      /* nº de columnas (JS lo actualiza) */
+    --col-min: 180px;  /* ancho fijo de cada columna */
   }
   body{margin:0; font:15px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg)}
   header{padding:12px; background:#111827; position:sticky; top:0; z-index:10}
@@ -19,7 +21,26 @@
   .pill{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:#1f2937; border:1px solid #2a3443; font-size:12px; color:#cbd5e1}
   .dot{width:10px; height:10px; border-radius:50%; background:#9ca3af}
   button{background:#1f2937; color:var(--ink); border:1px solid #374151; padding:6px 10px; border-radius:8px; cursor:pointer}
-  .grid{display:grid; gap:14px; grid-template-columns: repeat(10, minmax(180px, 1fr)); align-items:start; padding:16px}
+
+  /* Contenedor con scroll horizontal */
+  .grid-scroll{
+    overflow-x:auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 8px;
+  }
+
+  /* Grid con columnas de ancho fijo */
+  .grid{
+    display:grid;
+    gap:14px;
+    grid-template-columns: repeat(var(--levels, 10), var(--col-min));
+    align-items:start;
+    padding:16px;
+    width:max-content;  /* usa ancho intrínseco → aparece scroll si no caben */
+    min-width:100%;
+  }
+
   .col{display:flex; flex-direction:column; gap:14px}
   .col-head{font-weight:700; color:#cbd5e1; text-align:center}
   .course{position:relative; background:#0f172a; border:1px solid #1f2a40; border-radius:12px; padding:18px 12px 8px 32px; cursor:pointer; aspect-ratio:2/1; opacity:.4; pointer-events:none}
@@ -42,6 +63,26 @@
   .stat .val{font-size:18px; font-weight:800}
   .tests{margin:8px 16px 16px; font-size:12px}
   .ok{color:#22c55e} .fail{color:#ef4444}
+
+  /* Ajustes responsivos */
+  @media (max-width: 1280px){
+    :root{ --col-min: 170px; }
+    .grid { column-gap: 12px; row-gap: 12px; }
+    .course { padding: 14px 10px 8px 28px; }
+  }
+  @media (max-width: 900px){
+    :root{ --col-min: 160px; }
+    .course { aspect-ratio: 7/5; }
+    .col-head { font-size: 14px; }
+    .course .name { font-size: 14px; }
+    .course .meta { font-size: 12px; }
+  }
+  @media (max-width: 600px){
+    :root{ --col-min: 150px; }
+    .course { aspect-ratio: 1.4/1; padding: 12px 8px 6px 24px; }
+    .controls { gap: 6px; }
+    .controls input, button { padding: 6px 8px; }
+  }
 
   /* Tema claro */
   body[data-theme="light"]{color:#0b1220; background:#f8fafc}
@@ -66,7 +107,9 @@
   <div id="legend" class="legend"></div>
 </header>
 <div id="panel"></div>
-<div id="grid" class="grid"></div>
+<div class="grid-scroll">
+  <div id="grid" class="grid"></div>
+</div>
 <section class="credits" id="creditsPanel">
   <h2>Progreso</h2>
   <div class="row">
@@ -100,6 +143,9 @@ function isUnlocked(c, progress){
 function render(){
   const grid=$('#grid'); grid.innerHTML='';
   const maxLevel=Math.max(...COURSES.map(c=>c.level||1));
+  // fija el número de columnas (niveles)
+  document.documentElement.style.setProperty('--levels', String(maxLevel));
+
   for(let lvl=1; lvl<=maxLevel; lvl++) {
     const col=document.createElement('div'); col.className='col';
     const head=document.createElement('div'); head.className='col-head'; head.textContent='NIVEL '+lvl;
