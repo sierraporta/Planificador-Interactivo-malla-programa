@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Planificador Interactivo – Ciencia de Datos 2024</title>
+<style>
+  :root{
+    --bg:#0b1220; --paper:#0f172a; --ink:#e5e7eb; --muted:#94a3b8;
+    --ok:#22c55e; --warn:#f59e0b; --chip:#1f2937;
+    --OTRO:#9ca3af;
+    --AREA-AEMP:#22d3ee;--AREA-CBAS:#06b6d4;--AREA-CDAT:#84cc16;--AREA-CHUL:#ef4444;--AREA-CHUM:#a855f7;--AREA-ECON:#10b981;--AREA-ECOU:#f97316;--AREA-IIND:#34d399;--AREA-ISCO:#14b8a6;
+    --levels: 10;      /* nº de columnas (JS lo actualiza) */
+    --col-min: 200px;  /* ancho fijo de cada columna */
+  }
+  body{margin:0; font:15px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg)}
+  header{padding:12px; background:#111827; position:sticky; top:0; z-index:10}
+  .controls{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .controls input{background:#0b1322; color:var(--ink); border:1px solid #203249; border-radius:8px; padding:6px 10px}
+  .legend{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+  .pill{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:#1f2937; border:1px solid #2a3443; font-size:12px; color:#cbd5e1}
+  .dot{width:10px; height:10px; border-radius:50%; background:#9ca3af}
+  button{background:#1f2937; color:var(--ink); border:1px solid #374151; padding:6px 10px; border-radius:8px; cursor:pointer}
+
+  /* Contenedor con scroll horizontal */
+  .grid-scroll{
+    overflow-x:auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 8px;
+  }
+
+  /* Grid con columnas de ancho fijo */
+  .grid{
+    display:grid;
+    gap:140px;
+    grid-template-columns: repeat(var(--levels, 10), var(--col-min));
+    align-items:start;
+    padding:16px;
+    width:max-content;  /* usa ancho intrínseco → aparece scroll si no caben */
+    min-width:100%;
+  }
+
+  .col{display:flex; flex-direction:column; gap:14px}
+  .col-head{font-weight:700; color:#cbd5e1; text-align:center}
+  .course{position:relative; background:#0f172a; border:1px solid #1f2a40; border-radius:12px; padding:18px 12px 8px 32px; cursor:pointer; aspect-ratio:2/1; opacity:.4; pointer-events:none}
+  .course.available{opacity:1; pointer-events:auto}
+  .course.done{border-color:var(--ok)}
+  .course.unlock{outline:2px dashed var(--warn)}
+  .course.locked{opacity:.45; filter:grayscale(.1); cursor:not-allowed}
+  .tick{position:absolute; left:6px; top:6px; width:16px; height:16px; border-radius:4px; border:1px solid #273244; display:grid; place-items:center}
+  .tick svg{stroke:#93c5fd; opacity:0; fill:none; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round}
+  .course.done .tick svg{opacity:1}
+  .area{position:absolute; right:6px; top:6px; font-size:11px; padding:2px 6px; border-radius:999px; font-weight:600; background:var(--OTRO); color:#0b1220}
+  .course::before{content:""; position:absolute; left:0; top:0; bottom:0; width:6px; border-radius:12px 0 0 12px; background:var(--leftbar,var(--OTRO))}
+  #panel{background:#111827; padding:12px 16px; margin:0 16px 16px; border-radius:8px;}
+  #panel span{display:inline-block; margin-right:12px;}
+  .credits{margin:8px 16px 8px; padding:14px; border:1px solid #1f2a40; border-radius:12px; background:#0f172a}
+  .credits h2{margin:0 0 10px 0; font-size:16px}
+  .credits .row{display:flex; flex-wrap:wrap; gap:12px}
+  .stat{background:#0b1322; border:1px solid #203249; border-radius:10px; padding:10px 12px; min-width:160px}
+  .stat b{display:block; font-size:12px; color:#cbd5e1; margin-bottom:4px}
+  .stat .val{font-size:18px; font-weight:800}
+  .tests{margin:8px 16px 16px; font-size:12px}
+  .ok{color:#22c55e} .fail{color:#ef4444}
+
+  /* Ajustes responsivos */
+  @media (max-width: 1280px){
+    :root{ --col-min: 170px; }
+    .grid { column-gap: 12px; row-gap: 12px; }
+    .course { padding: 14px 10px 8px 28px; }
+  }
+  @media (max-width: 900px){
+    :root{ --col-min: 160px; }
+    .course { aspect-ratio: 7/5; }
+    .col-head { font-size: 14px; }
+    .course .name { font-size: 14px; }
+    .course .meta { font-size: 12px; }
+  }
+  @media (max-width: 600px){
+    :root{ --col-min: 150px; }
+    .course { aspect-ratio: 1.4/1; padding: 12px 8px 6px 24px; }
+    .controls { gap: 6px; }
+    .controls input, button { padding: 6px 8px; }
+  }
+
+  /* Tema claro */
+  body[data-theme="light"]{color:#0b1220; background:#f8fafc}
+  body[data-theme="light"] header{background:#e2e8f0}
+  body[data-theme="light"] .course{background:#ffffff; border-color:#d1d5db}
+  body[data-theme="light"] .credits, body[data-theme="light"] #panel{background:#ffffff; border-color:#e2e8f0}
+  body[data-theme="light"] .pill{background:#f1f5f9; border-color:#cbd5e1; color:#334155}
+  body[data-theme="light"] .controls input{background:#ffffff; border-color:#cbd5e1; color:#0b1220}
+  body[data-theme="light"] button{background:#ffffff; border-color:#cbd5e1; color:#0b1220}
+</style>
+</head>
+<body>
+<header>
+  <h1>Planificador Interactivo – Ciencia de Datos 2024</h1>
+  <div class="controls">
+    <input id="inpStudentCode" placeholder="Código estudiante" />
+    <input id="inpStudentName" placeholder="Nombre" />
+    <button id="btnReset">Reiniciar</button>
+    <button id="btnExportCSV">Exportar CSV</button>
+    <button id="btnTheme">Tema: Oscuro</button>
+  </div>
+  <div id="legend" class="legend"></div>
+</header>
+<div id="panel"></div>
+<div class="grid-scroll">
+  <div id="grid" class="grid"></div>
+</div>
+<section class="credits" id="creditsPanel">
+  <h2>Progreso</h2>
+  <div class="row">
+    <div class="stat"><b>Créditos aprobados</b><div class="val" id="crEarned">0</div></div>
+    <div class="stat"><b>Créditos totales</b><div class="val" id="crDefined">0</div></div>
+    <div class="stat"><b>Créditos faltantes</b><div class="val" id="crRemain">0</div></div>
+    <div class="stat"><b>Cursos aprobados</b><div class="val" id="countDone">0</div></div>
+    <div class="stat"><b>Cursos pendientes</b><div class="val" id="countTodo">0</div></div>
+  </div>
+</section>
+<div id="tests" class="tests"></div>
+
+<script>
+"use strict";
+const PROGRAM_CODE = "CDAT2024";
+const COURSES = [{"id": "CHUM-H01A", "name": "TALLER DE COMPRENSIÓN LECTORA", "area": "CHUM", "level": 1, "prereq": [], "credits": 3.0}, {"id": "ECOU-U01A", "name": "DESARROLLO UNIVERSITARIO", "area": "ECOU", "level": 1, "prereq": [], "credits": 0.0}, {"id": "CBAS-M01A", "name": "CALCULO DIFERENCIAL", "area": "CBAS", "level": 1, "prereq": [], "credits": 4.0}, {"id": "CDAT-D01A", "name": "INTRO A LA CIENCIA DE DATOS", "area": "CDAT", "level": 1, "prereq": [], "credits": 2.0}, {"id": "ECON-I01A", "name": "FUNDAMENTOS DE ECONOMÍA", "area": "ECON", "level": 1, "prereq": [], "credits": 3.0}, {"id": "ISCO-C02A", "name": "FUNDAMENTOS DE PROGRAMACIÓN", "area": "ISCO", "level": 1, "prereq": [], "credits": 3.0}, {"id": "CHUM-H02A", "name": "TALLER DE ESCRITURA ACADÉMICA", "area": "CHUM", "level": 2, "prereq": [], "credits": 3.0}, {"id": "CHUL-I01A", "name": "INGLES I", "area": "CHUL", "level": 2, "prereq": [], "credits": 2.0}, {"id": "CBAS-M03A", "name": "CALCULO INTEGRAL", "area": "CBAS", "level": 2, "prereq": ["CBAS-M01A"], "credits": 4.0}, {"id": "CBAS-E01A", "name": "ESTADÍSTICA Y PROBABILIDAD", "area": "CBAS", "level": 2, "prereq": [], "credits": 3.0}, {"id": "CBAS-M04A", "name": "ALGEBRA LINEAL", "area": "CBAS", "level": 2, "prereq": [], "credits": 3.0}, {"id": "CDAT-D02A", "name": "PROGRAM PARA CIENCIA DE DATOS", "area": "CDAT", "level": 2, "prereq": ["ISCO-C01A"], "credits": 3.0}, {"id": "CHUM-H03A", "name": "CONSTITUCIÓN POLÍTICA", "area": "CHUM", "level": 3, "prereq": [], "credits": 2.0}, {"id": "CHUL-I02A", "name": "INGLES II", "area": "CHUL", "level": 3, "prereq": ["CHUL-LE1A"], "credits": 2.0}, {"id": "CBAS-M05A", "name": "CALCULO VECTORIAL", "area": "CBAS", "level": 3, "prereq": ["CBAS-M02A", "CBAS-M03A"], "credits": 4.0}, {"id": "CBAS-E02A", "name": "ESTADÍSTICA INFERENCIAL", "area": "CBAS", "level": 3, "prereq": ["CBAS-E01A"], "credits": 3.0}, {"id": "ECON-I02A", "name": "MICROECONOMÍA I", "area": "ECON", "level": 3, "prereq": ["ECON-I01A", "CBAS-M01A"], "credits": 3.0}, {"id": "ISCO-C06A", "name": "MATEMÁTICA DISCRETA", "area": "ISCO", "level": 3, "prereq": ["CBAS-M03A", "CDAT-D02A"], "credits": 3.0}, {"id": "CHUM-HU1A", "name": "ELECTIVA DE HUMANIDADES I", "area": "CHUM", "level": 4, "prereq": [], "credits": 2.0}, {"id": "CHUL-I03A", "name": "INGLES III", "area": "CHUL", "level": 4, "prereq": ["CHUL-LE2A"], "credits": 2.0}, {"id": "CBAS-M06A", "name": "ECUACIONES DIFERENCIALES Y EN", "area": "CBAS", "level": 4, "prereq": ["CBAS-M05A"], "credits": 4.0}, {"id": "CDAT-D03A", "name": "MODE DE REGRE Y SERIES DE TIEM", "area": "CDAT", "level": 4, "prereq": ["CBAS-E02A"], "credits": 3.0}, {"id": "ECON-M01A", "name": "MACROECONOMÍA I", "area": "ECON", "level": 4, "prereq": ["ECON-I02A", "CBAS-M01A"], "credits": 3.0}, {"id": "ISCO-C05A", "name": "ESTRUCTURA DE DATOS", "area": "ISCO", "level": 4, "prereq": ["CDAT-D02A"], "credits": 3.0}, {"id": "CDAT-D04A", "name": "SENSADO Y MODEL DEL SIS FISICO", "area": "CDAT", "level": 4, "prereq": ["CBAS-M05A"], "credits": 4.0}, {"id": "CHUM-HU2A", "name": "ELECTIVA DE HUMANIDADES II", "area": "CHUM", "level": 5, "prereq": [], "credits": 2.0}, {"id": "CHUL-I04A", "name": "INGLES IV", "area": "CHUL", "level": 5, "prereq": ["CHUL-LE3A"], "credits": 2.0}, {"id": "CBAS-M09A", "name": "METODOS NUMERICOS", "area": "CBAS", "level": 5, "prereq": ["CBAS-M06A"], "credits": 3.0}, {"id": "CDAT-E01A", "name": "ELECTIVA COMPLEMENTARIA I", "area": "CDAT", "level": 5, "prereq": [], "credits": 3.0}, {"id": "IIND-R02A", "name": "OPTIMIZACIÓN", "area": "IIND", "level": 5, "prereq": ["CBAS-M03A"], "credits": 3.0}, {"id": "ISCO-A03A", "name": "ALGORITMOS Y COMPLEJIDAD", "area": "ISCO", "level": 5, "prereq": ["ISCO-C03A"], "credits": 3.0}, {"id": "CHUM-H05A", "name": "CIUDADANÍA GLOBAL", "area": "CHUM", "level": 5, "prereq": [], "credits": 2.0}, {"id": "CHUL-I05A", "name": "INGLES V", "area": "CHUL", "level": 6, "prereq": ["CHUL-LE4A"], "credits": 2.0}, {"id": "CDAT-D06A", "name": "NARRATIVA DE DATOS", "area": "CDAT", "level": 6, "prereq": ["CDAT-D01A", "CDAT-D02A"], "credits": 2.0}, {"id": "IIND-R04A", "name": "PROCESOS ESTOCÁSTICOS", "area": "IIND", "level": 6, "prereq": ["IIND-R01A", "CBAS-E02A"], "credits": 3.0}, {"id": "CDAT-E02A", "name": "ELECTIVA COMPLEMENTARIA II", "area": "CDAT", "level": 6, "prereq": [], "credits": 3.0}, {"id": "CDAT-D05A", "name": "MACHINE LEARNING", "area": "CDAT", "level": 6, "prereq": ["ISCO-C01A", "CBAS-M03A"], "credits": 3.0}, {"id": "ISCO-A01A", "name": "BASE DE DATOS", "area": "ISCO", "level": 6, "prereq": ["CDAT-D02A"], "credits": 3.0}, {"id": "CHUM-H04A", "name": "ÉTICA", "area": "CHUM", "level": 7, "prereq": [], "credits": 2.0}, {"id": "CDAT-D07A", "name": "ANALITICA Y MINERIA DE DATOS", "area": "CDAT", "level": 7, "prereq": ["CBAS-M03A", "CBAS-E02A"], "credits": 3.0}, {"id": "CDAT-D08A", "name": "VISUALIZACION DE DATOS", "area": "CDAT", "level": 7, "prereq": ["CDAT-D05A"], "credits": 3.0}, {"id": "CDAT-E03A", "name": "ELECTIVA COMPLEMENTARIA III", "area": "CDAT", "level": 7, "prereq": [], "credits": 3.0}, {"id": "CDAT-P01A", "name": "PROYECTO DE GRADO I", "area": "CDAT", "level": 7, "prereq": ["CDAT-D06A"], "credits": 3.0}, {"id": "ECON-M12A", "name": "FORMULACIÓN Y EVALUAC DE PROYE", "area": "ECON", "level": 7, "prereq": ["CBAS-E01A"], "credits": 3.0}, {"id": "AEMP-G04A", "name": "CREATIVIDAD Y EMPRENDIMIENTO", "area": "AEMP", "level": 8, "prereq": [], "credits": 3.0}, {"id": "CDAT-D09A", "name": "TOPIC DE CIEN DE DAT E INTE AR", "area": "CDAT", "level": 8, "prereq": ["CDAT-D06A"], "credits": 3.0}, {"id": "CDAT-D10A", "name": "BIG DATA", "area": "CDAT", "level": 8, "prereq": ["ISCO-C05A"], "credits": 3.0}, {"id": "CDAT-E04A", "name": "ELECTIVA COMPLEMENTARIA IV", "area": "CDAT", "level": 8, "prereq": [], "credits": 3.0}, {"id": "CDAT-P02A", "name": "PROYECTO DE GRADO II", "area": "CDAT", "level": 8, "prereq": ["CDAT-P01A"], "credits": 3.0}, {"id": "CDAT-P03A", "name": "PRACTICA PROFESIONAL", "area": "CDAT", "level": 9, "prereq": [], "credits": 9.0}, {"id": "CDAT-E05A", "name": "ELECTIVA COMPLEMENTARIA V", "area": "CDAT", "level": 9, "prereq": [], "credits": 3.0}];
+
+function $$(s){return Array.from(document.querySelectorAll(s));}
+function $(s){return document.querySelector(s);}
+function save(progress){ localStorage.setItem('progress:'+PROGRAM_CODE, JSON.stringify([...progress])); }
+function load(){ return new Set(JSON.parse(localStorage.getItem('progress:'+PROGRAM_CODE)||'[]')); }
+function colorForArea(a){
+  const v='--AREA-'+String(a||'OTRO').toUpperCase();
+  const val=(getComputedStyle(document.documentElement).getPropertyValue(v)||'').trim();
+  return val || getComputedStyle(document.documentElement).getPropertyValue('--OTRO').trim();
+}
+function isUnlocked(c, progress){
+  return !progress.has(c.id) && (c.prereq||[]).every(p=>progress.has(p));
+}
+
+function render(){
+  const grid=$('#grid'); grid.innerHTML='';
+  const maxLevel=Math.max(...COURSES.map(c=>c.level||1));
+  // fija el número de columnas (niveles)
+  document.documentElement.style.setProperty('--levels', String(maxLevel));
+
+  for(let lvl=1; lvl<=maxLevel; lvl++) {
+    const col=document.createElement('div'); col.className='col';
+    const head=document.createElement('div'); head.className='col-head'; head.textContent='NIVEL '+lvl;
+    col.appendChild(head);
+    COURSES.filter(c=>c.level===lvl).forEach(c=>{
+      const el=document.createElement('div'); el.className='course'; el.dataset.id=c.id;
+      el.style.setProperty('--leftbar',colorForArea(c.area));
+      el.innerHTML = `
+        <div class="tick"><svg viewBox="0 0 24 24" width="14" height="14"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="area" style="background:${colorForArea(c.area)}">${c.area}</div>
+        <div class="code">${c.id}</div>
+        <div class="name">${c.name}</div>
+        <div class="meta">${(c.prereq&&c.prereq.length?('Requiere: '+c.prereq.join(', ')):'Sin prereq')} | Créditos: ${c.credits}</div>`;
+      el.addEventListener('click', ()=>{
+        const progress = load();
+        const canToggle = progress.has(c.id) || isUnlocked(c, progress);
+        if(!canToggle) return;
+        if(progress.has(c.id)) progress.delete(c.id); else progress.add(c.id);
+        save(progress); update(); computeCredits();
+      });
+      col.appendChild(el);
+    });
+    grid.appendChild(col);
+  }
+  renderLegend();
+  update();
+  computeCredits();
+}
+
+function update(){
+  const progress = load();
+  $$('.course').forEach(el=>{
+    el.classList.remove('done','unlock','available','locked');
+    const c = COURSES.find(x=>x.id===el.dataset.id); if(!c) return;
+    if(progress.has(c.id)) {
+      el.classList.add('done','available');
+      const svg=el.querySelector('svg'); if(svg) svg.style.opacity=1;
+    } else if(isUnlocked(c, progress)) {
+      el.classList.add('unlock','available');
+    } else {
+      el.classList.add('locked');
+    }
+  });
+  computeStats();
+}
+
+function computeCredits(){
+  const progress = load();
+  const total = COURSES.reduce((a,c)=>a+(c.credits||0),0);
+  const earned = [...progress].map(id=>COURSES.find(c=>c.id===id)).filter(Boolean).reduce((a,c)=>a+(c.credits||0),0);
+  const pending = total-earned;
+  const approved = progress.size;
+  const missing = COURSES.length - approved;
+  document.getElementById('panel').innerHTML =
+    `<span><b>Créditos aprobados:</b> ${earned}</span>`+
+    `<span><b>Créditos faltantes:</b> ${pending}</span>`+
+    `<span><b>Cursos aprobados:</b> ${approved}</span>`+
+    `<span><b>Cursos faltantes:</b> ${missing}</span>`;
+}
+
+function computeStats(){
+  const progress = load();
+  let earned=0,total=0,done=0;
+  for(const c of COURSES){ total+=(c.credits||0); if(progress.has(c.id)){ done++; earned+=(c.credits||0); } }
+  const remain=Math.max(0,total-earned);
+  document.getElementById('crEarned').textContent=earned;
+  document.getElementById('crDefined').textContent=total;
+  document.getElementById('crRemain').textContent=remain;
+  document.getElementById('countDone').textContent = `${done} / ${COURSES.length}`;
+  document.getElementById('countTodo').textContent = `${COURSES.length - done}`;
+}
+
+function renderLegend(){
+  const L=document.getElementById('legend');
+  const areas=[...new Set(COURSES.map(c=>c.area))].sort();
+  L.innerHTML = areas.map(a=>`<span class="pill"><span class="dot" style="background:${colorForArea(a)}"></span>${a}</span>`).join('');
+}
+
+function csvEscape(val){
+  const s = String(val==null? '': val);
+  return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
+function buildCSV(progress){
+  const headers=['ID','Nombre','Área','Nivel','Créditos','Prerrequisitos','Estado'];
+  const rows = COURSES.map(c=>{
+    const estado = progress.has(c.id)? 'Aprobado' : (isUnlocked(c,progress)? 'Disponible' : 'Bloqueado');
+    return [c.id, c.name, c.area, c.level, c.credits, (c.prereq||[]).join(' | '), estado];
+  });
+  const totalCred=COURSES.reduce((s,c)=>s+(c.credits||0),0);
+  const earned=[...progress].map(id=>COURSES.find(c=>c.id===id)).filter(Boolean).reduce((s,c)=>s+(c.credits||0),0);
+  const remain=Math.max(0,totalCred-earned);
+  const done=[...progress].length; const todo=COURSES.length - done;
+  rows.push([]);
+  rows.push(['RESUMEN','','','','','','']);
+  rows.push(['Créditos aprobados', earned]);
+  rows.push(['Créditos totales', totalCred]);
+  rows.push(['Créditos faltantes', remain]);
+  rows.push(['Cursos aprobados', done]);
+  rows.push(['Cursos pendientes', todo]);
+  return [headers, ...rows];
+}
+function exportCSV(){
+  const progress = load();
+  const rows = buildCSV(progress);
+  // Metadatos de estudiante/programa
+  const student = loadStudent();
+  const meta = [
+    ['Programa', PROGRAM_CODE],
+    ['Código estudiante', student.code||''],
+    ['Nombre', student.name||''],
+    ['Fecha export', new Date().toISOString()],
+    []
+  ];
+  const all = [...meta, ...rows];
+  const csv = all.map(r=>r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['\ufeff'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=PROGRAM_CODE+'_progreso.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ===== Student meta + Theme =====
+function studentKey(){ return 'student:'+PROGRAM_CODE; }
+function loadStudent(){ try{ return JSON.parse(localStorage.getItem(studentKey())||'{}'); }catch(e){ return {}; } }
+function saveStudent(obj){ localStorage.setItem(studentKey(), JSON.stringify(obj||{})); }
+function bindStudentInputs(){
+  const codeEl=document.getElementById('inpStudentCode');
+  const nameEl=document.getElementById('inpStudentName');
+  const data=loadStudent();
+  if(codeEl) codeEl.value=data.code||'';
+  if(nameEl) nameEl.value=data.name||'';
+  codeEl&&codeEl.addEventListener('input',()=>{ const d=loadStudent(); d.code=codeEl.value; saveStudent(d); });
+  nameEl&&nameEl.addEventListener('input',()=>{ const d=loadStudent(); d.name=nameEl.value; saveStudent(d); });
+}
+
+function themeKey(){ return 'theme:'+PROGRAM_CODE; }
+function applyTheme(){
+  const t = localStorage.getItem(themeKey())||'dark';
+  document.body.setAttribute('data-theme', t==='light'?'light':'dark');
+  const btn=document.getElementById('btnTheme'); if(btn) btn.textContent = 'Tema: ' + (t==='light'?'Claro':'Oscuro');
+}
+function toggleTheme(){
+  const curr = localStorage.getItem(themeKey())||'dark';
+  const next = curr==='light'?'dark':'light';
+  localStorage.setItem(themeKey(), next);
+  applyTheme();
+}
+
+document.getElementById('btnReset').onclick = ()=>{ save(new Set()); render(); };
+document.getElementById('btnExportCSV').onclick = exportCSV;
+document.getElementById('btnTheme').onclick = ()=>{ toggleTheme(); };
+bindStudentInputs();
+render();
+applyTheme();
+
+// Tests básicos (consola)
+(function runTests(){
+  const out=[]; const ok=n=>out.push('OK '+n); const fail=(n,m)=>out.push('FAIL '+n+': '+m);
+  let progress = new Set();
+  try {
+    const unlocked = COURSES.filter(c=>isUnlocked(c,progress));
+    const should   = COURSES.filter(c=>!c.prereq||c.prereq.length===0);
+    if(unlocked.length===should.length && unlocked.every(u=>should.some(s=>s.id===u.id))) ok('Inicial unlocked = sin PRE');
+    else fail('Inicial','count mismatch');
+  } finally {
+    console.log('[TESTS]', out.join(' | '));
+  }
+})();
+</script>
+</body>
+</html>
