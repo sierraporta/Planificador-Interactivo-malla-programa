@@ -89,17 +89,17 @@ LEVEL,AREA,ID,NAME,CREDITS,PRE1,PRE2
 ### Generar HTMLs desde Excel
 
 ```bash
-python3 generar_mallas.py pensum.xlsx --outdir dist
+python3 generar_mallas_V-2.2.py pensum_copy2.xlsx --outdir dist
 ```
 
 ### Colores aleatorios por área (reproducibles con semilla):
 ```bash
-python3 generar_mallas.py pensum.xlsx --randomize-colors --seed 123
+python3 generar_mallas_V-2.2.py pensum_copy2.xlsx --randomize-colors --seed 123
 ```
 
 ### Pruebas internas de parseo/colores:
 ```bash
-python3 generar_mallas.py --selftest
+python3 generar_mallas_V-2.2.py --selftest
 ```
 **Salida:** se crearán uno o varios HTML en dist/ con nombre CODIGO.html, donde CODIGO viene del nombre de la hoja.
 
