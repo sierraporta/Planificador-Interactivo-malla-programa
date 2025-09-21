@@ -47,7 +47,7 @@ def parse_int(x, default=0):
     if pd.isna(x) or str(x).strip()=="":
         return default
     try:
-        return int(float(str(x).strip()))
+        return float(str(x).strip())
     except:
         return default
 
@@ -213,7 +213,7 @@ def build_html(program_title, program_code, courses, area_vars):
     --OTRO:#9ca3af;
     __AREA_VARS__
     --levels: 10;      /* nº de columnas (JS lo actualiza) */
-    --col-min: 180px;  /* ancho fijo de cada columna */
+    --col-min: 200px;  /* ancho fijo de cada columna */
   }
   body{margin:0; font:15px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg)}
   header{padding:12px; background:#111827; position:sticky; top:0; z-index:10}
@@ -235,7 +235,7 @@ def build_html(program_title, program_code, courses, area_vars):
   /* Grid con columnas de ancho fijo */
   .grid{
     display:grid;
-    gap:14px;
+    gap:140px;
     grid-template-columns: repeat(var(--levels, 10), var(--col-min));
     align-items:start;
     padding:16px;
